@@ -1,15 +1,23 @@
-FROM mcr.microsoft.com/devcontainers/python:1-3.11-bullseye
+ARG BASE_VARIANT=datascience-notebook
+ARG IMAGE_VARIANT=latest
 
-ENV PYTHONUNBUFFERED 1
+FROM quay.io/jupyter/${BASE_VARIANT}:${IMAGE_VARIANT}
 
-# [Optional] If your requirements rarely change, uncomment this section to add them to the image.
-# COPY requirements.txt /tmp/pip-tmp/
-# RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
-#    && rm -rf /tmp/pip-tmp
+# Crea el directorio de la aplicación
+WORKDIR /workspace
 
-# [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
+# Copia el requirements.txt
+COPY src/requirements.txt /workspace/src/requirements.txt
 
+USER root
+# Generally, Dev Container Features assume that the non-root user (in this case jovyan)
+# is in a group with the same name (in this case jovyan). So we must first make that so.
+RUN groupadd jovyan \
+    && usermod -g jovyan -a -G users jovyan
 
+USER jovyan
 
+# Instala las dependencias
+RUN pip install --upgrade pip && pip install -r /workspace/src/requirements.txt
+
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--NotebookApp.token=''"]
